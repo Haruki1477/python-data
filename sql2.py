@@ -199,7 +199,7 @@ root.configure(bg="#f9f9f9")  # 背景色を淡くする
 
 # フォントとスタイル
 LABEL_FONT = ("Arial", 10)
-ENTRY_WIDTH = 30
+ENTRY_WIDTH = 150
 PADY = 5
 
 # ===== スクロール可能なキャンバス作成 =====
