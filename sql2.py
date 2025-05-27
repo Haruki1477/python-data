@@ -309,10 +309,19 @@ button_search = ctk.CTkButton(frame_search, text="検索", command=search_employ
 button_search.pack(side="left", padx=5)
 
 # ラジオボタンで昇順降順を選択する
-radio_asc = tk.Radiobutton(root, text="昇順", variable=sort_order, value="ASC", command=update_sort_order)
-radio_asc.pack()
-radio_desc = tk.Radiobutton(root, text="降順", variable=sort_order, value="DESC", command=update_sort_order)
-radio_desc.pack()
+# 並び順選択ラジオボタン
+frame_sort = ctk.CTkFrame(scroll_frame)
+frame_sort.pack(padx=10, pady=5, fill="x")
+
+label_sort = ctk.CTkLabel(frame_sort, text="並び順：")
+label_sort.pack(side="left", padx=5)
+
+radio_asc = ctk.CTkRadioButton(frame_sort, text="昇順", variable=sort_order, value="ASC", command=update_sort_order)
+radio_asc.pack(side="left", padx=5)
+
+radio_desc = ctk.CTkRadioButton(frame_sort, text="降順", variable=sort_order, value="DESC", command=update_sort_order)
+radio_desc.pack(side="left", padx=5)
+
 
 
 # ---------- リストボックス ---------- 
