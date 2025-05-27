@@ -227,7 +227,7 @@ def add_employee():
     
 if root.winfo_exists():
     # ウィンドウが存在していれば操作を行う
-    root.quit()  # 例: アプリ終了処理
+    root.destroy()  # 例: アプリ終了処理
 
 def check_window(window):
     try:
@@ -273,11 +273,21 @@ def on_frame_configure(event):
 scroll_frame.bind("<Configure>", on_frame_configure)
 
 # 入力フォームのウィジェットを定義
-entry_name = ctk.CTkEntry(scroll_frame)  # 修正: scroll_frameを指定
-entry_name.pack(pady=5)
+frame_entry = ctk.CTkFrame(scroll_frame) # 修正: scroll_frameを指定
+frame_entry.pack(pady=10, padx=10, fill="x")
 
-entry_dept = ctk.CTkEntry(scroll_frame)  # 修正: scroll_frameを指定
-entry_dept.pack(pady=5)
+label_name = ctk.CTkLabel(frame_entry, text="社員：")
+label_name.pack(side="left", padx=5)
+
+entry_name = ctk.CTkEntry(frame_entry) # 修正: scroll_frameを指定
+entry_name.pack(side="left", padx=5)
+
+label_dept = ctk.CTkLabel(frame_entry, text="部署：")
+label_dept.pack(side="left", padx=5)
+
+entry_dept = ctk.CTkEntry(frame_entry)
+entry_dept.pack(side="left", padx=5)
+
 
 # ---------- 検索セクション ---------- 
 frame_search = ctk.CTkFrame(scroll_frame)
