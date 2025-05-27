@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox,filedialog
+from tkinter import messagebox, filedialog
 import psycopg2
 import csv
 import customtkinter as ctk
@@ -16,13 +16,9 @@ DB_PARAMS = {
 ctk.set_appearance_mode("System")  # ダーク/ライトモード
 ctk.set_default_color_theme("blue")  # テーマを変更（blue, dark, light）
 
-root = tk.Tk()
+root = ctk.CTk()
 root.title("社員管理アプリ")
 root.geometry("1000x900")
-root.configure(bg="#f9f9f9")
-
-# rootができた後に定義する
-sort_order = tk.StringVar(value="ASC")  # OKここでならエラー出ません
 
 # CSVインポートの関数
 def import_from_csv():
@@ -51,32 +47,41 @@ def import_from_csv():
     except Exception as e:
         messagebox.showerror("エラー", str(e))
 
+# グローバル変数（並び順を管理）
+sort_order = tk.StringVar(value="ASC")  # デフォルトで昇順
 
+# ラジオボタンで昇順降順を切り替える
+def update_sort_order():
+    fetch_employees(search_name=entry_search_name.get(), search_dept=entry_search_dept.get(), order=sort_order.get())
 
-# 社員情報を取得する関数
 def fetch_employees(search_name=None, search_dept=None):
     try:
         conn = psycopg2.connect(**DB_PARAMS)
         cur = conn.cursor()
 
-        # 検索条件に基づくSQL
+        # 並び順を直接変数から取得
+        order_clause = sort_order.get()  # ASC or DESC
+
         if search_name and search_dept:
-            cur.execute("SELECT * FROM 社員 WHERE 名前 LIKE %s AND 部署 LIKE %s", (f"%{search_name}%", f"%{search_dept}%"))
+            cur.execute(f"SELECT * FROM 社員 WHERE 名前 LIKE %s AND 部署 LIKE %s ORDER BY ID {order_clause}", (f"%{search_name}%", f"%{search_dept}%"))
         elif search_name:
-            cur.execute("SELECT * FROM 社員 WHERE 名前 LIKE %s", (f"%{search_name}%",))
+            cur.execute(f"SELECT * FROM 社員 WHERE 名前 LIKE %s ORDER BY ID {order_clause}", (f"%{search_name}%",))
         elif search_dept:
-            cur.execute("SELECT * FROM 社員 WHERE 部署 LIKE %s", (f"%{search_dept}%",))
+            cur.execute(f"SELECT * FROM 社員 WHERE 部署 LIKE %s ORDER BY ID {order_clause}", (f"%{search_dept}%",))
         else:
-            cur.execute("SELECT * FROM 社員")
-        
+            cur.execute(f"SELECT * FROM 社員 ORDER BY ID {order_clause}")
+
         rows = cur.fetchall()
         listbox.delete(0, tk.END)
         for row in rows:
             listbox.insert(tk.END, f"{row[0]}: {row[1]}（{row[2]}）")
+
         cur.close()
         conn.close()
+
     except Exception as e:
         messagebox.showerror("エラー", str(e))
+
 
 # CSVエクスポートの関数
 def export_to_csv():
@@ -104,14 +109,14 @@ def search_employees():
     search_name = entry_search_name.get()
     search_dept = entry_search_dept.get()
 
-    fetch_employees(search_name, search_dept)
+    fetch_employees(search_name, search_dept, sort_order.get())
 
 # 社員情報を追加する関数
 def add_employee():
+    name = entry_name.get()  # entry_name が正しく定義されているか確認
     name = entry_name.get()
     dept = entry_dept.get()
 
-    print(f"名前: {name}, 部署: {dept}")  # ここで入力内容をデバッグ
     if not name or not dept:
         messagebox.showwarning("入力エラー", "名前と部署を入力してください")
         return
@@ -129,8 +134,6 @@ def add_employee():
         fetch_employees()  # 一覧を更新
     except Exception as e:
         messagebox.showerror("エラー", str(e))
-        print(f"エラー内容: {str(e)}")  # エラー内容をデバッグ
-
 
 # 社員情報を削除する関数
 def delete_employee():
@@ -196,17 +199,64 @@ def edit_employee():
     save_button = tk.Button(root, text="保存", command=save_edits)
     save_button.pack(pady=5)
 
+# ここで、エントリーフィールドが定義されていないため追加しました
+
+# 社員情報を追加する関数
+def add_employee():
+    name = entry_name.get()  # entry_name が正しく定義されているか確認
+    dept = entry_dept.get()
+
+    if not name or not dept:
+        messagebox.showwarning("入力エラー", "名前と部署を入力してください")
+        return
+
+    try:
+        conn = psycopg2.connect(**DB_PARAMS)
+        cur = conn.cursor()
+        cur.execute("INSERT INTO 社員 (名前, 部署) VALUES (%s, %s)", (name, dept))
+        conn.commit()
+        cur.close()
+        conn.close()
+        messagebox.showinfo("成功", "社員を追加しました")
+        entry_name.delete(0, tk.END)
+        entry_dept.delete(0, tk.END)
+        fetch_employees()  # 一覧を更新
+    except Exception as e:
+        messagebox.showerror("エラー", str(e))
+
+    
+if root.winfo_exists():
+    # ウィンドウが存在していれば操作を行う
+    root.destroy()  # 例: アプリ終了処理
+
+def check_window(window):
+    try:
+        # ウィンドウが存在しているかをチェック
+        if window.winfo_exists():
+            print("ウィンドウはまだ存在しています")
+        else:
+            print("ウィンドウは破棄されています")
+    except Exception as e:
+        print(f"エラーが発生しました: {str(e)}")
+
 root = tk.Tk()
 root.title("社員管理アプリ")
 root.geometry("1000x900")
-root.configure(bg="#f9f9f9")  # 背景色を淡くする
+root.configure(bg="#f9f9f9")
 
 # フォントとスタイル
 LABEL_FONT = ("Arial", 10)
 ENTRY_WIDTH = 150
 PADY = 5
 
-# ===== スクロール可能なキャンバス作成 =====
+def update_sort_order():
+    fetch_employees(
+        search_name=entry_search_name.get(),
+        search_dept=entry_search_dept.get()
+    )
+
+
+# スクロール可能なキャンバス作成
 canvas = tk.Canvas(root, borderwidth=0, background="#f9f9f9")
 scroll_frame = tk.Frame(canvas, background="#f9f9f9")  # 中身を詰めるためのFrame
 scrollbar = tk.Scrollbar(root, orient="vertical", command=canvas.yview)
@@ -222,8 +272,24 @@ def on_frame_configure(event):
 
 scroll_frame.bind("<Configure>", on_frame_configure)
 
+# 入力フォームのウィジェットを定義
+frame_entry = ctk.CTkFrame(scroll_frame) # 修正: scroll_frameを指定
+frame_entry.pack(pady=10, padx=10, fill="x")
 
-# ---------- 検索セクション ----------
+label_name = ctk.CTkLabel(frame_entry, text="社員：")
+label_name.pack(side="left", padx=5)
+
+entry_name = ctk.CTkEntry(frame_entry) # 修正: scroll_frameを指定
+entry_name.pack(side="left", padx=5)
+
+label_dept = ctk.CTkLabel(frame_entry, text="部署：")
+label_dept.pack(side="left", padx=5)
+
+entry_dept = ctk.CTkEntry(frame_entry)
+entry_dept.pack(side="left", padx=5)
+
+
+# ---------- 検索セクション ---------- 
 frame_search = ctk.CTkFrame(scroll_frame)
 frame_search.pack(padx=10, pady=10, fill="x")
 
@@ -242,60 +308,38 @@ entry_search_dept.pack(side="left", padx=5)
 button_search = ctk.CTkButton(frame_search, text="検索", command=search_employees)
 button_search.pack(side="left", padx=5)
 
+# ラジオボタンで昇順降順を選択する
+radio_asc = tk.Radiobutton(root, text="昇順", variable=sort_order, value="ASC", command=update_sort_order)
+radio_asc.pack()
+radio_desc = tk.Radiobutton(root, text="降順", variable=sort_order, value="DESC", command=update_sort_order)
+radio_desc.pack()
 
 
-# ---------- 追加セクション ----------
-frame_add = ctk.CTkFrame(scroll_frame)
-frame_add.pack(padx=10, pady=10, fill="x")
+# ---------- リストボックス ---------- 
+listbox = tk.Listbox(scroll_frame, height=10)
+listbox.pack(padx=10, pady=10, fill="x")
 
-tk.Label(frame_add, text="名前", font=("Arial", 10)).grid(row=0, column=0, sticky="e")
-entry_name = ctk.CTkEntry(frame_add, width=ENTRY_WIDTH)
-entry_name.grid(row=0, column=1, padx=5, pady=PADY)
+# ---------- ボタン ---------- 
+button_import = ctk.CTkButton(scroll_frame, text="CSVインポート", command=import_from_csv)
+button_import.pack(pady=10)
 
-tk.Label(frame_add, text="部署", font=("Arial", 10)).grid(row=1, column=0, sticky="e")
-entry_dept = ctk.CTkEntry(frame_add, width=ENTRY_WIDTH)
-entry_dept.grid(row=1, column=1, padx=5, pady=PADY)
+button_export = ctk.CTkButton(scroll_frame, text="CSVエクスポート", command=export_to_csv)
+button_export.pack(pady=10)
 
-btn_add = ctk.CTkButton(frame_add, text="追加", width=120, command=add_employee)  # 引数なしで関数を呼び出し
-btn_add.grid(row=2, column=1, sticky="e", pady=PADY)
+button_add = ctk.CTkButton(scroll_frame, text="社員を追加", command=add_employee)
+button_add.pack(pady=10)
 
-# ---------- 社員一覧セクション ----------
-frame_list = ctk.CTkFrame(scroll_frame) 
-frame_list.pack(padx=10, pady=10, fill="both", expand=True)
+button_delete = ctk.CTkButton(scroll_frame, text="社員を削除", command=delete_employee)
+button_delete.pack(pady=10)
 
-scrollbar = ctk.CTkScrollbar(frame_list)
-scrollbar.pack(side="right", fill="y")
+button_edit = ctk.CTkButton(scroll_frame, text="社員を編集", command=edit_employee)
+button_edit.pack(pady=10)
 
-listbox = tk.Listbox(frame_list, width=60, height=15, yscrollcommand=scrollbar.set)
-listbox.pack(side="left", fill="both", expand=True)
+# ボタンを作成
+btn_check = tk.Button(root, text="ウィンドウ状態確認", command=lambda: check_window(root))
+btn_check.pack(pady=20)
 
-# scrollbarの設定をconfigureに変更
-scrollbar.configure(command=listbox.yview)
-
-# ---------- 操作ボタン ----------
-frame_buttons = ctk.CTkFrame(scroll_frame)
-frame_buttons.pack(pady=10)
-
-btn_fetch = ctk.CTkButton(frame_buttons, text="全件表示", width=120, command=fetch_employees)
-btn_fetch.grid(row=0, column=0, padx=5)
-
-btn_edit = ctk.CTkButton(frame_buttons, text="編集", width=120, command=edit_employee)
-btn_edit.grid(row=0, column=1, padx=5)
-
-btn_delete = ctk.CTkButton(frame_buttons, text="削除", width=120, command=delete_employee)
-btn_delete.grid(row=0, column=2, padx=5)
-
-btn_export = ctk.CTkButton(frame_buttons, text="CSVエクスポート", width=120, command=export_to_csv)
-btn_export.grid(row=1, column=0, padx=5, pady=PADY)
-
-btn_import = ctk.CTkButton(frame_buttons, text="CSVインポート", width=120, command=import_from_csv)
-btn_import.grid(row=1, column=1, padx=5, pady=PADY)
-
-# ウィンドウが閉じられた時に残ったイベントをキャンセルする
-def on_close():
-    root.quit()  # これでTkinterのmainloopを終了
-    root.destroy()
-
-root.protocol("WM_DELETE_WINDOW", on_close)  # ウィンドウ閉じる時の処理
+# 初回データの表示
+fetch_employees()
 
 root.mainloop()
